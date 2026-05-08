@@ -821,16 +821,18 @@ async function openScanner() {
   document.getElementById('scannerStatus').textContent = 'Avvio fotocamera...';
   try {
     codeReader = new ZXing.BrowserMultiFormatReader();
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    const deviceId = devices.length > 1 ? devices[1].deviceId : devices[0]?.deviceId;
-    await codeReader.decodeFromVideoDevice(deviceId, 'scannerVideo', async (result, err) => {
-      if (result) {
-        const barcode = result.getText();
-        document.getElementById('scannerStatus').textContent = 'Codice trovato: ' + barcode + ' — ricerca in corso...';
-        closeScanner();
-        await lookupBarcode(barcode);
+    await codeReader.decodeFromConstraints(
+      { video: { facingMode: 'environment' } },
+      'scannerVideo',
+      async (result, err) => {
+        if (result) {
+          const barcode = result.getText();
+          document.getElementById('scannerStatus').textContent = 'Codice trovato: ' + barcode + ' — ricerca in corso...';
+          closeScanner();
+          await lookupBarcode(barcode);
+        }
       }
-    });
+    );
   } catch(e) {
     document.getElementById('scannerStatus').textContent = 'Errore: ' + e.message;
   }
