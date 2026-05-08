@@ -1,0 +1,1 @@
+A personal nutrition tracker built with HTML and JavaScript. Track daily macros, log food, calculate TDEE and BMI, and monitor weekly progress. No backend required — data is saved locally in the browser.
