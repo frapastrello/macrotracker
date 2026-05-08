@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Macro Tracker</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <style>
 :root {
   --bg:#ffffff;--bg2:#f5f5f4;--bg3:#eeece8;
@@ -230,6 +231,9 @@ label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-wei
         <div class="search-results" id="searchResults"></div>
       </div>
     </div>
+      <button class="btn btn-sm" onclick="openScanner()" style="margin-top:6px;width:100%">
+        <i class="ti ti-scan"></i> Scansiona codice a barre
+      </button>
     <div class="sel-food-card" id="selFoodCard">
       <div class="sel-food-name" id="selFoodName"></div>
       <div class="sel-food-macros" id="selFoodMacros"></div>
@@ -808,6 +812,79 @@ if(!profiles.length){
   sv('mt_profiles',profiles);activeId=id;sv('mt_active',id);
 }
 updateNavProfile();renderLogger();renderFoodTable('p');loadSettingsForm();
+
+// ── BARCODE SCANNER ───────────────────────────────────
+let codeReader = null;
+
+async function openScanner() {
+  document.getElementById('scannerModal').classList.add('open');
+  document.getElementById('scannerStatus').textContent = 'Avvio fotocamera...';
+  try {
+    codeReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+    const deviceId = devices.length > 1 ? devices[1].deviceId : devices[0]?.deviceId;
+    await codeReader.decodeFromVideoDevice(deviceId, 'scannerVideo', async (result, err) => {
+      if (result) {
+        const barcode = result.getText();
+        document.getElementById('scannerStatus').textContent = 'Codice trovato: ' + barcode + ' — ricerca in corso...';
+        closeScanner();
+        await lookupBarcode(barcode);
+      }
+    });
+  } catch(e) {
+    document.getElementById('scannerStatus').textContent = 'Errore: ' + e.message;
+  }
+}
+
+function closeScanner() {
+  if (codeReader) { codeReader.reset(); codeReader = null; }
+  document.getElementById('scannerModal').classList.remove('open');
+}
+
+async function lookupBarcode(barcode) {
+  document.getElementById('foodSearch').value = 'Ricerca barcode ' + barcode + '...';
+  document.getElementById('selFoodCard').style.display = 'none';
+  try {
+    const r = await fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json');
+    const data = await r.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const n = p.nutriments;
+      const food = {
+        n: (p.product_name_it || p.product_name || 'Prodotto').slice(0, 60),
+        p: Math.round((n['proteins_100g'] || 0) * 10) / 10,
+        c: Math.round((n['carbohydrates_100g'] || 0) * 10) / 10,
+        f: Math.round((n['fat_100g'] || 0) * 10) / 10,
+        k: Math.round(n['energy-kcal_100g'] || 0)
+      };
+      pickAPI(food);
+    } else {
+      document.getElementById('foodSearch').value = '';
+      alert('Prodotto non trovato nel database. Prova a cercarlo manualmente.');
+    }
+  } catch(e) {
+    document.getElementById('foodSearch').value = '';
+    alert('Errore di connessione. Riprova.');
+  }
+}
+  
 </script>
+
+<div class="modal-overlay" id="scannerModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title"><i class="ti ti-scan"></i> Scansiona prodotto</div>
+    <div style="border-radius:var(--radius);overflow:hidden;background:#000;aspect-ratio:4/3;position:relative">
+      <video id="scannerVideo" style="width:100%;height:100%;object-fit:cover" playsinline></video>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+        <div style="width:60%;height:40%;border:2px solid #fff;border-radius:4px;opacity:.7"></div>
+      </div>
+    </div>
+    <div id="scannerStatus" style="text-align:center;font-size:13px;color:var(--text2);margin-top:10px">Inquadra il codice a barre del prodotto</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeScanner()">Chiudi</button>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>
