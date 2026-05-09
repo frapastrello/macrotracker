@@ -563,6 +563,11 @@ const USDA_KEY = 'DEMO_KEY';
 // ═══════════════════════════════════════
 function ld(k,d){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+const APP_VERSION = '2.0';
+if(ld('mt_version','') !== APP_VERSION) {
+  localStorage.clear();
+  sv('mt_version', APP_VERSION);
+}
 let profiles=ld('mt_profiles',[]);
 let activeId=ld('mt_active','');
 function ap(){return profiles.find(p=>p.id===activeId)||profiles[0]||null;}
