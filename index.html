@@ -748,7 +748,7 @@ function renderHome(){
   // Header
   const now=new Date();
   const hour=now.getHours();
-  const greet=hour<12?'Buongiorno':'hour<18?'Buon pomeriggio':'Buonasera';
+  const greet = hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buonasera';
   document.getElementById('homeDateLabel').textContent=fmtLabel(selDay);
   document.getElementById('homeGreeting').textContent=greet+', '+p.name.split(' ')[0]+'!';
   updateHomeProfileBtn();
